@@ -1,0 +1,20 @@
+{
+  "name": "gravitator",
+  "description": "gravity simulator toy thing",
+  "main": "index.js",
+  "authors": [
+    "nomilous <nomilous@gmail.com>"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/nomilous/gravitator",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+  }
+}
