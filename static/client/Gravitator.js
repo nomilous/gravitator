@@ -23,7 +23,7 @@
     }
 
     start(api) {
-      api.exchange.map.getMap(this.params.map || '1')
+      api.exchange.map.getMap(this.params.map || '1', this.params)
         .then(this._loadMap.bind(this))
         .catch(error => {
           console.error(error);
@@ -40,7 +40,7 @@
 
     _defaults() {
       this.camera.position.z = 100;
-      this.params.time = 1;
+      this.params.time = this.params.time || 1;
     }
 
     _loadMap(map) {
