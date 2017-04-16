@@ -29,7 +29,7 @@ build/Release
 # Dependency directories
 node_modules
 jspm_packages
-bower_components
+static/components
 
 # Optional npm cache directory
 .npm
@@ -38,3 +38,5 @@ bower_components
 .node_repl_history
 
 .idea
+
+examine
