@@ -4,7 +4,7 @@ describe('Gravitator', function () {
 
   it('initializes', function () {
 
-    let g = new Gravitator(1);
+    let g = new Gravitator({}, 1);
 
   });
 

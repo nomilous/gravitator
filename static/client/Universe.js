@@ -9,6 +9,7 @@
     constructor(params, scene) {
       this.params = params;
       this.scene = scene;
+      this.objects = [];
     }
 
     set gravitationalConstant(value) {
@@ -20,24 +21,26 @@
     }
 
     update(time) {
-      this.gravitate();
-      this.accelerate(time);
-      this.move(time);
+      this.gravitate(this.objects);
+      this.accelerate(this.objects, time);
+      this.move(this.objects, time);
+      this.history(this.objects);
+      this.future(this.objects, time);
     }
 
-    gravitate() {
-      let i,j;
+    gravitate(objects) {
+      let i, j;
 
-      for(i = 0; i < this.scene.children.length; i++) {
-        let object = this.scene.children[i];
+      for (i = 0; i < objects.length; i++) {
+        let object = objects[i];
         this._initForce(object);
       }
 
-      for(i = 0; i < this.scene.children.length; i++) {
+      for (i = 0; i < objects.length; i++) {
         for (j = 0; j < i; j++) {
           let forceVector = new THREE.Vector3();
-          let object1 = this.scene.children[i];
-          let object2 = this.scene.children[j];
+          let object1 = objects[i];
+          let object2 = objects[j];
 
           let mass = object1.mass * object2.mass;
           let distance = object1.position.distanceTo(object2.position);
@@ -58,10 +61,10 @@
       }
     }
 
-    accelerate(time) {
+    accelerate(objects, time) {
       let i;
-      for(i = 0; i < this.scene.children.length; i++) {
-        let object = this.scene.children[i];
+      for (i = 0; i < objects.length; i++) {
+        let object = objects[i];
 
         object.acceleration.x = object.force.x / object.mass;
         object.acceleration.y = object.force.y / object.mass;
@@ -73,11 +76,91 @@
       }
     }
 
-    move(time) {
-      this.scene.children.forEach(function (child) {
-        child.position.x += child.velocity.x * time;
-        child.position.y += child.velocity.y * time;
-        child.position.z += child.velocity.z * time;
+    move(objects, time) {
+      objects.forEach(function (object) {
+        object.position.x += object.velocity.x * time;
+        object.position.y += object.velocity.y * time;
+        object.position.z += object.velocity.z * time;
+      });
+    }
+
+    history(objects) {
+      if (!this.params.history) return;
+
+      objects.forEach(object => {
+        if (!object.history) return;
+
+        let accum = object.history.accum;
+        let positions = object.history.geometry.attributes.position.array;
+        let index = 0;
+        let i;
+
+        accum.push(object.position.clone());
+        while (object.history.accum.length > this.params.history) {
+          object.history.accum.shift();
+        }
+
+        for (i = 0; i < accum.length; i++) {
+          let vertex = accum[i];
+          positions[index++] = vertex.x;
+          positions[index++] = vertex.y;
+          positions[index++] = vertex.z;
+        }
+
+        object.history.geometry.setDrawRange(0, accum.length);
+        object.history.geometry.attributes.position.needsUpdate = true;
+      });
+    }
+
+    future(objects, time) {
+      if (!this.params.future) return;
+
+      this.futureObjects= [];
+      objects.forEach(object => {
+        let futureObject = {
+          object: object
+        };
+        futureObject.position = object.position.clone();
+        this._initMass(futureObject, object);
+        this._initVelocity(futureObject, object);
+        this._initAcceleration(futureObject, object);
+        this.futureObjects.push(futureObject);
+      });
+
+      for (let i = 0; i < this.params.future; i++) {
+        this.gravitate(this.futureObjects);
+        this.accelerate(this.futureObjects, time);
+        this.move(this.futureObjects, time);
+
+        this.futureObjects.forEach(futureObject => {
+          let object = futureObject.object;
+          if (!object.future) return;
+
+          let accum = object.future.accum;
+          accum[i] = {
+            x: futureObject.position.x,
+            y: futureObject.position.y,
+            z: futureObject.position.z
+          };
+        });
+      }
+
+      objects.forEach(object => {
+        if (!object.future) return;
+
+        let accum = object.future.accum;
+        let positions = object.future.geometry.attributes.position.array;
+        let index = 0;
+        let i;
+
+        for (i = 0; i < accum.length; i++) {
+          let vertex = accum[i];
+          positions[index++] = vertex.x;
+          positions[index++] = vertex.y;
+          positions[index++] = vertex.z;
+        }
+
+        object.future.geometry.attributes.position.needsUpdate = true;
       });
     }
 
@@ -107,7 +190,11 @@
       this._initForce(object);
       this._initAcceleration(object);
 
+      this.objects.push(object);
       this.scene.add(object);
+
+      this._initHistory(object, particle);
+      this._initFuture(object, particle);
     }
 
     _initMass(object, particle) {
@@ -151,6 +238,40 @@
         y: 0,
         z: 0
       }
+    }
+
+    _initHistory(object, particle) {
+      if (!this.params.history) return;
+      if (particle.noHistory) return;
+
+      let material = new THREE.LineBasicMaterial({color: 0x777777, linewidth: 1});
+      let geometry = new THREE.BufferGeometry();
+      let positions = new Float32Array(this.params.history * 3);
+
+      geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setDrawRange(0, 0);
+
+      let line = new THREE.Line(geometry, material);
+      object.history = line;
+      object.history.accum = [];
+      this.scene.add(line);
+    }
+
+    _initFuture(object, particle) {
+      if (!this.params.future) return;
+      if (particle.noFuture) return;
+
+      let material = new THREE.LineBasicMaterial({color: 0x777777, linewidth: 1});
+      let geometry = new THREE.BufferGeometry();
+      let positions = new Float32Array(this.params.future * 3);
+
+      geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setDrawRange(0, this.params.future);
+
+      let line = new THREE.Line(geometry, material);
+      object.future = line;
+      object.future.accum = [];
+      this.scene.add(line);
     }
 
   }

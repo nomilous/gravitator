@@ -13,8 +13,8 @@
       this.params = params;
       this.scene = new THREE.Scene();
       this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-      this.universe = new Universe(params, this.scene);
       this._defaults();
+      this.universe = new Universe(params, this.scene);
     }
 
     set aspect(value) {
@@ -41,6 +41,7 @@
     _defaults() {
       this.camera.position.z = 100;
       this.params.time = this.params.time || 1;
+      this.params.history = this.params.history || 0;
     }
 
     _loadMap(map) {
