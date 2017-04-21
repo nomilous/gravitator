@@ -10,7 +10,7 @@
 
   if (typeof require === 'function') {
     THREE = require('three');
-    Existence = window.gravitator.Existence;
+    Existence = require('./Existence');
     Gravitation = require('./Gravitation');
     Acceleration = require('./Acceleration');
     Motion = require('./Motion');
