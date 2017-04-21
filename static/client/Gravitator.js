@@ -1,9 +1,13 @@
 !function () {
 
+  var THREE;
+  var Uiverse;
+
   if (typeof require === 'function') {
     THREE = require('three');
-    Universe = require('./universe');
+    Universe = require('./gravitator/Universe');
   } else {
+    THREE = window.THREE;
     Universe = gravitator.Universe;
   }
 
@@ -45,9 +49,9 @@
     }
 
     _loadMap(map) {
-      map.particles = map.particles || [];
+      map.objects = map.objects || [];
       this.universe.gravitationalConstant = map.g || 0.1;
-      map.particles.forEach(this.universe.insertParticle.bind(this.universe));
+      map.objects.forEach(this.universe.insertObject.bind(this.universe));
     }
 
   }
